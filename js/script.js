@@ -157,43 +157,83 @@ function initSmoothScroll() {
 }
 
 /**
- * 4. FORM HANDLING
+ * 4. FORM HANDLING (WITH FORMSPREE)
  */
 function initFormHandler() {
     const form = document.getElementById('terminal-form');
     if (!form) return;
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
         const btn = document.querySelector('.pulse-btn');
         const btnContent = document.querySelector('.btn-content');
         const originalText = btnContent.innerText;
         const outputLog = document.getElementById('output-log');
 
-        // Loading State
+        // 1. Visual: Loading State
         btnContent.innerText = "SENDING...";
         btn.style.borderColor = "#ffbd2e"; 
         btn.style.color = "#ffbd2e";
         btn.style.animation = "none";
 
-        // Simulate Network Request
-        setTimeout(() => {
-            // Success State
-            btnContent.innerText = "SENT";
-            btn.style.borderColor = "#27c93f";
-            btn.style.color = "#27c93f";
-            
-            outputLog.style.display = "block";
-            form.reset();
+        // 2. Data Preparation
+        const formData = new FormData(form);
+        
+        // --- PENTING: GANTI URL DI BAWAH INI DENGAN URL FORMSPREE ANDA ---
+        const formspreeEndpoint = "https://formspree.io/f/xqeaqqrj"; 
 
-            // Reset after delay
-            setTimeout(() => {
-                btnContent.innerText = originalText;
-                btn.style.borderColor = ""; // Revert to CSS default
-                btn.style.color = "";
-                btn.style.animation = ""; 
-                outputLog.style.display = "none";
-            }, 4000);
-        }, 1500);
+        try {
+            // 3. Send Data via AJAX (Fetch)
+            const response = await fetch(formspreeEndpoint, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // SUCCESS STATE
+                btnContent.innerText = "SENT";
+                btn.style.borderColor = "#27c93f";
+                btn.style.color = "#27c93f";
+                
+                // Tampilkan Log Sukses di Terminal
+                outputLog.innerHTML = `
+                    > ESTABLISHING HANDSHAKE...<br>
+                    > PACKET ENCRYPTED.<br>
+                    > UPLOADING TO SERVER... 100%<br>
+                    > <span class="success">TRANSMISSION SUCCESSFUL.</span>
+                `;
+                outputLog.style.display = "block";
+                
+                form.reset();
+            } else {
+                // ERROR STATE (Server Formspree menolak)
+                throw new Error('Server returned error');
+            }
+
+        } catch (error) {
+            // NETWORK/CODE ERROR
+            btnContent.innerText = "ERROR";
+            btn.style.borderColor = "#ff003c";
+            btn.style.color = "#ff003c";
+            
+            outputLog.innerHTML = `
+                > ESTABLISHING HANDSHAKE...<br>
+                > <span style="color:#ff003c">CONNECTION FAILED.</span><br>
+                > CHECK NETWORK OR ENDPOINT.
+            `;
+            outputLog.style.display = "block";
+        }
+
+        // 4. Reset Button after delay
+        setTimeout(() => {
+            btnContent.innerText = originalText;
+            btn.style.borderColor = ""; 
+            btn.style.color = "";
+            btn.style.animation = ""; 
+        }, 5000);
     });
 }
